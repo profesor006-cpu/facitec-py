@@ -135,7 +135,7 @@ def obtener_carta(restaurante):
 
 # Texto de ayuda que aparece arriba del menu
 AYUDA = [
-    "MENU: consulte la carta, busque platos y vea precios.",
+    "MENU: consulte la carta, busque platos, vea precios y lo más vendido.",
     "Codigos de platos: letra y numero, por ejemplo  P1  (plato) o  B2  (bebida)",
     "Presupuesto: guaranies sin puntos ni comas, por ejemplo  100000",
 ]
@@ -159,6 +159,7 @@ def menu(restaurante=None):
         print("3. Ordenar por precio")
         print("4. Combo óptimo según presupuesto")
         print("5. Marcar producto agotado o disponible")
+        print("6. Reportes de platos más vendidos (gráficos)")
         print("0. Volver")
         opcion = pedir("Opcion", "escriba el numero y Enter, ej.: 1")
         esperar = True
@@ -208,6 +209,17 @@ def menu(restaurante=None):
             else:
                 ok(f"{producto.nombre}: "
                    f"{'disponible' if producto.disponible else 'AGOTADO'}")
+
+        elif opcion == "6":
+            # Se importa aca y no arriba porque reportes usa el modulo Mozo, que a su
+            # vez importa este archivo; asi tampoco hace falta pandas para usar la carta
+            try:
+                from modulos.reportes import mostrar_reportes
+            except ImportError:
+                error("Para ver los gráficos hay que instalar pandas y matplotlib:\n"
+                      "py -m pip install pandas matplotlib")
+                continue
+            mostrar_reportes(carta)
 
         elif opcion == "0":
             break   # vuelve al menu principal sin esperar Enter
