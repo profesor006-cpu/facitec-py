@@ -3,7 +3,6 @@
 Lee datos/comandas.json con pandas y dibuja con matplotlib que platos salieron
 mas en el dia o en la semana. Se abre desde el modulo Menu.
 """
-import json
 import os
 from datetime import datetime, timedelta
 
@@ -13,37 +12,35 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from modulos.entrada import error, ok, pedir
-from modulos.mozo import ARCHIVO, ENTREGADA, FORMATO_HORA
+from modulos.base_datos import CARPETA, conexion
+from modulos.mozo import ENTREGADA, FORMATO_HORA
 
 # Solo cuentan como venta las comandas que ya llegaron a la mesa o se cobraron
 VENDIDAS = (ENTREGADA, "cobrada")
 # Los graficos van dentro de datos/, que ya esta en el .gitignore y no se sube a GitHub
-CARPETA_REPORTES = os.path.join(os.path.dirname(ARCHIVO), "reportes")
+CARPETA_REPORTES = os.path.join(CARPETA, "reportes")
 
 
 def cargar_ventas(carta):
     """Arma una tabla con una fila por plato vendido: fecha, plato, cantidad e importe."""
-    if not os.path.exists(ARCHIVO):
-        return pd.DataFrame()
-    try:
-        with open(ARCHIVO, encoding="utf-8") as archivo:
-            comandas = json.load(archivo)
-    except (OSError, json.JSONDecodeError):
-        return pd.DataFrame()
+    # Las comandas ya no estan en un JSON: se leen de la base SQLite
+    with conexion() as con:
+        filas_bd = con.execute(
+            "SELECT c.hora, c.estado, i.codigo, i.cantidad FROM comandas c"
+            " JOIN items i ON i.comanda = c.numero").fetchall()
 
     filas = []
-    for comanda in comandas:
-        if comanda.get("estado") not in VENDIDAS:
+    for fila in filas_bd:
+        if fila["estado"] not in VENDIDAS:
             continue
-        for item in comanda["items"]:
-            producto = carta.obtener(item["codigo"])
-            precio = producto.precio if producto else 0
-            filas.append({
-                "fecha": datetime.strptime(comanda["hora"], FORMATO_HORA),
-                "plato": producto.nombre if producto else item["codigo"],
-                "cantidad": item["cantidad"],
-                "importe": precio * item["cantidad"],
-            })
+        producto = carta.obtener(fila["codigo"])
+        precio = producto.precio if producto else 0
+        filas.append({
+            "fecha": datetime.strptime(fila["hora"], FORMATO_HORA),
+            "plato": producto.nombre if producto else fila["codigo"],
+            "cantidad": fila["cantidad"],
+            "importe": precio * fila["cantidad"],
+        })
     return pd.DataFrame(filas)
 
 
