@@ -1,2 +1,5 @@
 rich
 pyfiglet
+streamlit
+pandas
+matplotlib
